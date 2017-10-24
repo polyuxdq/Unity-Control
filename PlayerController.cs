@@ -87,8 +87,9 @@ public class PlayerController : MonoBehaviour {
     // Format the Count Text All the time
 	void SetCountText () {
 		countText.text = "Count: " + count.ToString ();
-		if (count >= 5)
-			winText.text = "You Win!";			
+        if (count >= 5) {
+            winText.text = "You Win!";  
+        }		
 	}
 
     // limit the rotation value
