@@ -4,104 +4,115 @@ using UnityEngine;
 using UnityEngine.UI;
 using System;
 
-
 public class PlayerController : MonoBehaviour {
+    public static Vector3 orientationVector;
 
-	public float speed;
-	public Text countText;
-	public Text winText;
+    public GameObject projectile;
+    public float moveSpeed;
+    public Text countText;
+    public Text winText;
 
-    public static Vector3 rotationVector;
+    private Rigidbody rb;
+    private int count;
+    private float throwSpeed;
 
-	private Rigidbody rb;
-	private int count;
+    // Use this for initialization
+    void Start() {
+        orientationVector = new Vector3(0, 0, 0);
+        rb = GetComponent<Rigidbody>();
+        count = 0;
+        throwSpeed = 100f;
+        SetDisplayText();
+    }
 
+    //// Update is called once per frame
+    //void Update() {
+    //    if (Input.GetButtonDown("Fire1")) {
+    //        Vector3 position = transform.position;
+    //        position.y = position.y + 0.75f;
+    //        GameObject throwThis = Instantiate(projectile, position, new Quaternion(x: 0, y: 0, z: 0, w: 0)) as GameObject;
+    //        throwThis.GetComponent<Rigidbody>().AddRelativeForce(orientationVector * 2000);
+    //    }
+    //}
 
-	// Use this for initialization
-	void Start () {
-        rotationVector = new Vector3(0, 0, 0);
-		rb = GetComponent<Rigidbody> ();
-		count = 0;
-		SetCountText ();
-		winText.text = "";
-	}
-	
-	// Update is called once per frame
-	void Update () {
-		// Debug.Log ("Update time" + Time.deltaTime);
-	}
+    void FixedUpdate() {
+        // wsad control
+        float moveHorizontal = Input.GetAxis("Horizontal");
+        float moveVertical = Input.GetAxis("Vertical");
+        // space jumping and view adjust
+        float moveJump = Input.GetAxis("Jump") * 5;
+        float moveLeftRightView = Input.GetAxis("LeftRightView") * 10;
 
-	void FixedUpdate() {
-		// Get form keyboard
-		float moveHorizontal = Input.GetAxis ("Horizontal");
-		float moveVertical = Input.GetAxis ("Vertical");
-		float moveJump = Input.GetAxis ("Jump") * 5;
-        float moveRotation = Input.GetAxis("Rotation") * 10;
+        // orientation left right
+        float orientationLeftRight = GetLimitedRotationAngle(moveLeftRightView, orientationVector.y);
+        orientationVector.y = orientationLeftRight;
 
-        // Rotation Effect
-        float rotationY = UpdateRotation(moveRotation);
-        // Debug.Log("rotationY " + rotationY);
-        float sinValue = (float)Math.Sin((double)rotationY/180*Math.PI);
-        float cosValue = (float)Math.Cos((double)rotationY/180*Math.PI);
-        // Transform
-        float tempX = moveHorizontal * cosValue + moveVertical * sinValue;
-        float tempZ = moveHorizontal * -sinValue + moveVertical * cosValue;
-        // Update
-        moveHorizontal = tempX;
-        moveVertical = tempZ;
+        // wsad control from x,z axis to x',z' axis due to orientation
+        float sinValue = (float)Math.Sin((double)orientationLeftRight / 180 * Math.PI);
+        float cosValue = (float)Math.Cos((double)orientationLeftRight / 180 * Math.PI);
+        moveHorizontal = moveHorizontal * cosValue + moveVertical * sinValue;
+        moveVertical = moveHorizontal * -sinValue + moveVertical * cosValue;
 
-        // constrain of height(y axis), no force in the air
-        float yPosition = transform.position.y;
-		if (yPosition > 0.75) {
-			moveJump = 0;
-			moveHorizontal = 0;
-            moveVertical = 0;
-		}
+        ConstrainActionInAir(ref moveHorizontal, ref moveVertical, ref moveJump);
+        SpeedSlowDownIfNoForceApplied(ref moveHorizontal, ref moveVertical);
 
-		// constrain of horizontal(x axis), vertical(z asix)
-        // Slow down the speed
-		float coefficient = 0.2f;
-		float xForce = - rb.velocity.x * coefficient;
-		float zForce = - rb.velocity.z * coefficient;
-        // if no force applied, at the ground
-        // What if some surface at the desk
-		if (Math.Abs(moveHorizontal) < 0.05 && yPosition < 0.75)
-			moveHorizontal = xForce;
-		if (Math.Abs(moveVertical) < 0.05 && yPosition < 0.75)
-			moveVertical = zForce;
-
-		Vector3 movement = new Vector3 (moveHorizontal, moveJump, moveVertical);
-		rb.AddForce (movement * speed);
-		// Debug.Log ("FixedUpdate time:" + Time.deltaTime);
-	}
+        Vector3 movement = new Vector3(moveHorizontal, moveJump, moveVertical);
+        rb.AddForce(movement * moveSpeed);
+    }
 
     // Pick up element
-	void OnTriggerEnter(Collider other) {
-		if (other.gameObject.CompareTag("Pick")) {
-			other.gameObject.SetActive(false);
-			count++;
-			SetCountText ();
-		}
-	}
+    void OnTriggerEnter(Collider other) {
+        if (other.gameObject.CompareTag("Pick")) {
+            other.gameObject.SetActive(false);
+            count++;
+            SetDisplayText();
+        }
+    }
 
     // Format the Count Text All the time
-	void SetCountText () {
-		countText.text = "Count: " + count.ToString ();
+    void SetDisplayText() {
+        countText.text = "Count: " + count.ToString();
         if (count >= 5) {
-            winText.text = "You Win!";  
-        }		
-	}
+            winText.text = "You Win!";
+        } else {
+            winText.text = "";
+        }
+    }
 
     // limit the rotation value
-    float UpdateRotation(float rotation) {
-        float tempY = rotationVector.y + rotation;
-        while (tempY > 180) {
-            tempY -= 360;
+    float GetLimitedRotationAngle(float rotation, float original)  {
+        float tempRotation = rotation + original;
+        while (tempRotation > 180) {
+            tempRotation -= 360;
         }
-        while (tempY < - 180) {
-            tempY += 360;
+        while (tempRotation < -180) {
+            tempRotation += 360;
         }
-        rotationVector.y = tempY;
-        return rotationVector.y;
+        return tempRotation;
+    }
+
+    void ConstrainActionInAir(ref float moveHorizontal, ref float moveVertical, ref float moveJump) {
+        // constrain of height(y axis), no force in the air
+        float height = transform.position.y; // init = 0.5
+        if (height > 0.75) {
+            moveJump = 0;
+            moveHorizontal = 0;
+            moveVertical = 0;
+        }
+    }
+
+    void SpeedSlowDownIfNoForceApplied(ref float moveHorizontal, ref float moveVertical) {
+        // constrain of horizontal(x axis), vertical(z asix)
+        // Slow down the speed
+        float coefficient = 0.2f;
+        float height = transform.position.y;
+        float xForce = -rb.velocity.x * coefficient;
+        float zForce = -rb.velocity.z * coefficient;
+        // if no force applied, at the ground
+        // TODO: what if some surface at the desk
+        if (Math.Abs(moveHorizontal) < 0.05 && height < 0.75)
+            moveHorizontal = xForce;
+        if (Math.Abs(moveVertical) < 0.05 && height < 0.75)
+            moveVertical = zForce;
     }
 }

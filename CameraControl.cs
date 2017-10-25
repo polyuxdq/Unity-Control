@@ -3,83 +3,92 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 
+/* Camera keeps track of the object and changes angle */
 public class CameraControl : MonoBehaviour {
+    public GameObject player; // The player object
 
-	public GameObject player;
-
-    private Vector3 initialOffsetPosition;
-	private Vector3 offsetPosition;
-    private Vector3 ballPosition;
-
-    private float initialRotationX;
+    private Vector3 initialOffsetPosition; // The start of the game
+    private Vector3 offsetPosition; // Each time
+    private Vector3 playerPosition;
+    private float initialUpDown; // Rotation up and down
     private float cameraDistanceRatio;
 
-	// Use this for initialization
-	void Start () {
+    // Use this for initialization
+    void Start() {
         initialOffsetPosition = transform.position - player.transform.position;
         offsetPosition = initialOffsetPosition;
-        initialRotationX = transform.rotation.eulerAngles.x;
-        cameraDistanceRatio = 1;
-	}
-	
-	// Update is called once per frame
-	void Update () {
-        // Distance Ratio
-        UpdateDistance(Input.GetAxis("CameraDistance") * 0.2f);
-        offsetPosition = initialOffsetPosition * cameraDistanceRatio;
-        Debug.Log(cameraDistanceRatio);
-
-        // Rotation
-        float rotationY = PlayerController.rotationVector.y;
-
-        float sinValue = (float)Math.Sin((double)rotationY / 180 * Math.PI);
-        float cosValue = (float)Math.Cos((double)rotationY / 180 * Math.PI);
-
-        float positionX = offsetPosition.x * cosValue + offsetPosition.z * sinValue;
-        float positionZ = offsetPosition.x * -sinValue + offsetPosition.z * cosValue;
-        float positionY = offsetPosition.y;
-        //Debug.Log(positionX + " "+ positionY + " " + positionZ);
-
-        // Only consider x, z asix
-		ballPosition = player.transform.position;
-		ballPosition.y = 0;
-
-        transform.position = ballPosition + new Vector3(positionX, positionY, positionZ);
-
-        Vector3 eulerAngles = transform.rotation.eulerAngles;
-
-        float cameraRotation = Input.GetAxis("CameraRotation") * 5;
-        eulerAngles.x = LimitRotation(cameraRotation, eulerAngles.x);
-        transform.rotation = Quaternion.Euler(eulerAngles.x, rotationY, eulerAngles.z);
-
-	}
-
-    // limit the rotation value
-    float LimitRotation(float rotation, float original) {
-        float tempY = rotation + original;
-        while (tempY > 180) {
-            tempY -= 360;
-        }
-        if (tempY > 90) {
-            tempY = 90;
-        }
-        while (tempY < -180) {
-            tempY += 360;
-        }
-        if (tempY < initialRotationX - 90) {
-            tempY = initialRotationX - 90;
-        }
-        return tempY;
+        initialUpDown = transform.rotation.eulerAngles.x; // X axis for up & down
+        cameraDistanceRatio = 1.0f;
     }
 
-    int UpdateDistance(float distance) {
-        cameraDistanceRatio = cameraDistanceRatio * distance + cameraDistanceRatio;
-        if (cameraDistanceRatio > 3) {
-            cameraDistanceRatio = 3;
+    // Update is called once per frame
+    void Update() {
+        PerformCameraPositionTransformation();
+        PerformCameraRotationTransformation();
+    }
+
+    void PerformCameraPositionTransformation() {
+        // Control Camera Distance by coefficient
+        cameraDistanceRatio = GetUpdateDistanceRatio(Input.GetAxis("CameraDistance") * 0.2f);
+        offsetPosition = initialOffsetPosition * cameraDistanceRatio;
+
+        // Position transform due to oritentation of player: Left & Right Angle
+        float orientationLeftRight = PlayerController.orientationVector.y; // A Static to indicating the Left Right
+        // Typical Transformation from x,z axis to x',z' axis
+        float sinValue = (float)Math.Sin((double)orientationLeftRight / 180 * Math.PI);
+        float cosValue = (float)Math.Cos((double)orientationLeftRight / 180 * Math.PI);
+        float offsetX = offsetPosition.x * cosValue + offsetPosition.z * sinValue;
+        float offsetZ = offsetPosition.x * -sinValue + offsetPosition.z * cosValue;
+        float offsetY = offsetPosition.y; // Height unchanged
+        offsetPosition = new Vector3(offsetX, offsetY, offsetZ);
+
+        // For better feeling of jumping: only consider x, z asix
+        playerPosition = player.transform.position;
+        playerPosition.y = 0.5f; // This is the initilial position of the player
+        // TODO: Further improvement with desk
+
+        // Assign camera position
+        transform.position = playerPosition + offsetPosition;
+    }
+
+    float GetUpdateDistanceRatio(float distance) {
+        float tempRatio = cameraDistanceRatio * (distance + 1);
+        if (tempRatio > 3) {
+            tempRatio = 3f;
+        } else if (tempRatio < 0.5) {
+            tempRatio = 0.5f;
         }
-        if (cameraDistanceRatio < 0.5) {
-            cameraDistanceRatio = 0.5f;
+        return tempRatio;
+    }
+
+    void PerformCameraRotationTransformation() {
+        // Camera Rotation: orientation of the camera
+        Vector3 eulerAngles = transform.rotation.eulerAngles; // Get the current rotation or orientation
+
+        // X axis: camera up and down
+        float cameraUpDown = Input.GetAxis("CameraUpDown") * 5;
+        eulerAngles.x = GetLimitedRotationAngle(cameraUpDown, eulerAngles.x);
+
+        // Y axis: camera left and right
+        eulerAngles.y = PlayerController.orientationVector.y;
+        transform.rotation = Quaternion.Euler(eulerAngles.x, eulerAngles.y, eulerAngles.z);
+    }
+
+    // limit the rotation value
+    float GetLimitedRotationAngle(float rotation, float original) {
+        float tempRotation = rotation + original;
+        while (tempRotation > 180) {
+            tempRotation -= 360;
         }
-        return 0;
+        if (tempRotation > 90) {
+            tempRotation = 90;
+        }
+        while (tempRotation < -180) {
+            tempRotation += 360;
+        }
+        if (tempRotation < initialUpDown - 90) {
+            tempRotation = initialUpDown - 90; // Negative to go up
+        }
+        return tempRotation;
     }
 }
