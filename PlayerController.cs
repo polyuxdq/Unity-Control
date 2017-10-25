@@ -21,19 +21,13 @@ public class PlayerController : MonoBehaviour {
         orientationVector = new Vector3(0, 0, 0);
         rb = GetComponent<Rigidbody>();
         count = 0;
-        throwSpeed = 100f;
+        throwSpeed = 1000f;
         SetDisplayText();
     }
 
-    //// Update is called once per frame
-    //void Update() {
-    //    if (Input.GetButtonDown("Fire1")) {
-    //        Vector3 position = transform.position;
-    //        position.y = position.y + 0.75f;
-    //        GameObject throwThis = Instantiate(projectile, position, new Quaternion(x: 0, y: 0, z: 0, w: 0)) as GameObject;
-    //        throwThis.GetComponent<Rigidbody>().AddRelativeForce(orientationVector * 2000);
-    //    }
-    //}
+    // Update is called once per frame
+    void Update() {
+    }
 
     void FixedUpdate() {
         // wsad control
@@ -44,20 +38,26 @@ public class PlayerController : MonoBehaviour {
         float moveLeftRightView = Input.GetAxis("LeftRightView") * 10;
 
         // orientation left right
-        float orientationLeftRight = GetLimitedRotationAngle(moveLeftRightView, orientationVector.y);
-        orientationVector.y = orientationLeftRight;
+        orientationVector.y = GetLimitedRotationAngle(moveLeftRightView, orientationVector.y);
 
-        // wsad control from x,z axis to x',z' axis due to orientation
-        float sinValue = (float)Math.Sin((double)orientationLeftRight / 180 * Math.PI);
-        float cosValue = (float)Math.Cos((double)orientationLeftRight / 180 * Math.PI);
-        moveHorizontal = moveHorizontal * cosValue + moveVertical * sinValue;
-        moveVertical = moveHorizontal * -sinValue + moveVertical * cosValue;
-
+        AxisTransformationDueToOrientationChange(ref moveHorizontal, ref moveVertical);
         ConstrainActionInAir(ref moveHorizontal, ref moveVertical, ref moveJump);
         SpeedSlowDownIfNoForceApplied(ref moveHorizontal, ref moveVertical);
 
         Vector3 movement = new Vector3(moveHorizontal, moveJump, moveVertical);
         rb.AddForce(movement * moveSpeed);
+
+        ThrowProjectileLogicAction();
+
+        if (transform.position.y < -10) {
+            transform.position = new Vector3(0, 0.75f, -4.25f);
+            rb.velocity = new Vector3(0, 0, 0);
+            rb.angularVelocity = new Vector3(0, 0, 0);
+            rb.rotation = Quaternion.Euler(0, 0, 0);
+            //rb.AddForce(new Vector3(0, 0, 0));
+            //rb.AddTorque(new Vector3(0, 0, 0));
+            Debug.Log("Don't do silly things.");
+        }
     }
 
     // Pick up element
@@ -80,7 +80,7 @@ public class PlayerController : MonoBehaviour {
     }
 
     // limit the rotation value
-    float GetLimitedRotationAngle(float rotation, float original)  {
+    float GetLimitedRotationAngle(float rotation, float original) {
         float tempRotation = rotation + original;
         while (tempRotation > 180) {
             tempRotation -= 360;
@@ -114,5 +114,31 @@ public class PlayerController : MonoBehaviour {
             moveHorizontal = xForce;
         if (Math.Abs(moveVertical) < 0.05 && height < 0.75)
             moveVertical = zForce;
+    }
+
+    void AxisTransformationDueToOrientationChange(ref float moveHorizontal, ref float moveVertical) {
+        float orientationLeftRight = orientationVector.y;
+        // wsad control from x,z axis to x',z' axis due to orientation
+        float sinValue = (float)Math.Sin((double)orientationLeftRight / 180 * Math.PI);
+        float cosValue = (float)Math.Cos((double)orientationLeftRight / 180 * Math.PI);
+        // Transform, must use temp variable
+        float newHorizontal = moveHorizontal * cosValue + moveVertical * sinValue;
+        float newVertical = moveHorizontal * -sinValue + moveVertical * cosValue;
+        moveHorizontal = newHorizontal;
+        moveVertical = newVertical;
+    }
+
+    void ThrowProjectileLogicAction() {
+        if (Input.GetButtonDown("Fire1")) {
+            Vector3 position = transform.position;
+            position.y = position.y + 1f;
+            GameObject throwThis = Instantiate(projectile, position, new Quaternion(x: 0, y: 0, z: 0, w: 0)) as GameObject;
+
+            float speedHorizontal = 0;
+            float speedVertical = throwSpeed;
+            float speedUpward = (float)Math.Tan((double)CameraControl.relatedCameraUpDown / 180 * Math.PI) * throwSpeed;
+            AxisTransformationDueToOrientationChange(ref speedHorizontal, ref speedVertical);
+            throwThis.GetComponent<Rigidbody>().AddRelativeForce(new Vector3(speedHorizontal, speedUpward, speedVertical));
+        }
     }
 }

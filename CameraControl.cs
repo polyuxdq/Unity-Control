@@ -5,6 +5,7 @@ using System;
 
 /* Camera keeps track of the object and changes angle */
 public class CameraControl : MonoBehaviour {
+    public static float relatedCameraUpDown;
     public GameObject player; // The player object
 
     private Vector3 initialOffsetPosition; // The start of the game
@@ -15,6 +16,7 @@ public class CameraControl : MonoBehaviour {
 
     // Use this for initialization
     void Start() {
+        relatedCameraUpDown = 0;
         initialOffsetPosition = transform.position - player.transform.position;
         offsetPosition = initialOffsetPosition;
         initialUpDown = transform.rotation.eulerAngles.x; // X axis for up & down
@@ -68,6 +70,7 @@ public class CameraControl : MonoBehaviour {
         // X axis: camera up and down
         float cameraUpDown = Input.GetAxis("CameraUpDown") * 5;
         eulerAngles.x = GetLimitedRotationAngle(cameraUpDown, eulerAngles.x);
+        relatedCameraUpDown = initialUpDown - eulerAngles.x; // Positive direction goes down
 
         // Y axis: camera left and right
         eulerAngles.y = PlayerController.orientationVector.y;
