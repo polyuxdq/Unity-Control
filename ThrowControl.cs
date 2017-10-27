@@ -2,6 +2,11 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+/*
+ * Throw Collision to Collect Key
+ * Throw to Open Doors
+ * 
+ */
 public class ThrowControl : MonoBehaviour {
 
     // Use this for initialization
@@ -14,6 +19,7 @@ public class ThrowControl : MonoBehaviour {
 
     void OnTriggerEnter(Collider other) {
         if (other.gameObject.CompareTag("front") && !DoorControl.frontAllow) {
+            // Perform nothing for front door collision with disable
         } else {
             if (other.gameObject.CompareTag("front") && DoorControl.frontAllow) {
                 DoorControl.frontOn = true;
@@ -26,8 +32,10 @@ public class ThrowControl : MonoBehaviour {
             } else if (other.gameObject.CompareTag("Pick")) {
                 PlayerControl.count++;
             }
+            // Duplicate Door Objects are buit in the model
+            // One for detection, one for physical constrain
             other.gameObject.SetActive(false);
-            gameObject.SetActive(false);
+            gameObject.SetActive(false); // Throw object
         }
     }
 }

@@ -4,6 +4,15 @@ using UnityEngine;
 using UnityEngine.UI;
 using System;
 
+/* 
+ * Player Motion Control
+ * 
+ * Horizontal and Vertical Control: WSAD
+ * Jump Control: Space
+ * Left and Right View: QE
+ * Throw Object: X or Left Click
+ * 
+ */
 public class PlayerControl : MonoBehaviour {
     public static Vector3 orientationVectorForLeftRight;
     public static int count;
@@ -61,7 +70,6 @@ public class PlayerControl : MonoBehaviour {
             rb.rotation = Quaternion.Euler(0, 0, 0);
             PlayerControl.orientationVectorForLeftRight = new Vector3(0, 0, 0);
             CameraControl.cameraDistanceRatio = 1;
-
             //rb.AddForce(new Vector3(0, 0, 0));
             //rb.AddTorque(new Vector3(0, 0, 0));
             Debug.Log("Don't do silly things.");
@@ -76,7 +84,7 @@ public class PlayerControl : MonoBehaviour {
             DoorControl.frontAllow = true;
         } else {
             winText.text = "";
-        } //TODO
+        }
     }
 
     // limit the rotation value
@@ -92,10 +100,10 @@ public class PlayerControl : MonoBehaviour {
     }
 
     void ConstrainActionInAir(ref float moveHorizontal, ref float moveVertical, ref float moveJump) {
-        // constrain of height(y axis), no force in the air
+        // constrain of height(y axis), less force in the air
         float height = player.transform.position.y; // init = 0.5
         if (height > 1) {
-            moveJump = 0;
+            moveJump *= 0.5f;
             moveHorizontal *= 0.5f;
             moveVertical *= 0.5f;
         }

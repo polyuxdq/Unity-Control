@@ -34,6 +34,7 @@ public class DoorControl : MonoBehaviour {
         DoorLogicControl();
     }
 
+    // Else case for default position
     void DoorLogicControl() {
         if (frontOn) {
             DoorOpenAction("frontDoor");

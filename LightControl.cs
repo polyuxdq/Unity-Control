@@ -50,10 +50,11 @@ public class LightControl : MonoBehaviour {
             hiddenTrigger = true;
             for (int i = 1; i <= 8; i++) {
                 lightEnable[i] = true;
-            } // Some problem here?
+            }
         }
     }
 
+    // Other objects must use this function to update light status
     void LightLogicControl() {
         Vector3 playerPosion = player.transform.position;
         for (int i = 1; i <= 8; i++) {

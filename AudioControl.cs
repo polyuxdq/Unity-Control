@@ -2,9 +2,14 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+/*
+ * Audio Control
+ * 
+ * Play Music For Event
+ * 
+ */
 public class AudioControl : MonoBehaviour {
     public AudioClip sound;
-
     private AudioSource source;
 
     // Use this for initialization

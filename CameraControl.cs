@@ -3,13 +3,21 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 
+/*
+ * Camera Motion Control
+ * 
+ * Two Mode:
+ * Distance and Up and Down Angle: IKJL
+ * Camera Up Down, Forward Backward Motion: IKJL
+ * 
+ */
 public class CameraControl : MonoBehaviour {
 
     public static float relatedCameraUpDownAngle;
     public static float cameraDistanceRatio;
 
     public GameObject player;
-    public new Camera camera; // Problem? TODO
+    public new Camera camera;
 
     private Vector3 initialOffsetBetweenCameraPlayer;
     private Vector3 offsetBetweenCameraPlayer; // Each time
